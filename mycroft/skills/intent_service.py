@@ -144,8 +144,18 @@ class IntentService(object):
         # Converse method
         self.emitter.on('skill.converse.response',
                         self.handle_converse_response)
+        self.emitter.on('speech.recognition.unknown', self.converse_none)
         self.active_skills = []  # [skill_id , timestamp]
         self.converse_timeout = 5  # minutes to prune active_skills
+
+    def converse_none(self, message):
+        lang = message.data.get('lang', "en-us")
+        for skill in self.active_skills:
+            if self.do_converse(None, skill[0], lang):
+                # update timestamp, or there will be a timeout where
+                # intent stops conversing whether its being used or not
+                self.add_active_skill(skill[0])
+                return
 
     def do_converse(self, utterances, skill_id, lang):
         self.emitter.emit(Message("skill.converse.request", {
@@ -202,9 +212,7 @@ class IntentService(object):
 
     def handle_utterance(self, message):
         # Get language of the utterance
-        lang = message.data.get('lang', None)
-        if not lang:
-            lang = "en-us"
+        lang = message.data.get('lang', "en-us")
 
         utterances = message.data.get('utterances', '')
 

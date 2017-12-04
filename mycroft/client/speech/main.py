@@ -56,6 +56,10 @@ def handle_utterance(event):
     ws.emit(Message('recognizer_loop:utterance', event))
 
 
+def handle_unknown(event):
+    ws.emit(Message('speech.recognition.unknown', event))
+
+
 def handle_speak(event):
     """
         Forward speak message to message bus.
@@ -133,6 +137,7 @@ def main():
     Configuration.init(ws)
     loop = RecognizerLoop()
     loop.on('recognizer_loop:utterance', handle_utterance)
+    loop.on('speech.recognition.unknown', handle_unknown)
     loop.on('speak', handle_speak)
     loop.on('recognizer_loop:record_begin', handle_record_begin)
     loop.on('recognizer_loop:wakeword', handle_wakeword)

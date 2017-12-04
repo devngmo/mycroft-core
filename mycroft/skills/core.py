@@ -24,6 +24,7 @@ import re
 from adapt.intent import Intent, IntentBuilder
 from os import listdir
 from os.path import join, abspath, dirname, splitext, basename, exists
+from threading import Event
 
 from mycroft.api import DeviceApi
 from mycroft.client.enclosure.api import EnclosureAPI
@@ -320,12 +321,37 @@ class MycroftSkill(object):
             indicate that the utterance has been handled.
 
             Args:
-                utterances: The utterances from the user
+                utterances (list): The utterances from the user
                 lang:       language the utterance is in
 
             Returns:    True if an utterance was handled, otherwise False
         """
         return False
+
+    def get_response(self, dialog, data=None):
+        """
+        Ask and return a response from the user for the given dialog
+
+        Args:
+            dialog (str): Dialog file to read to the user
+            data (dict): data used to render the dialog
+        Returns:
+            any: None or transcription user's reply
+        """
+        event = Event()
+
+        def converse(utterances, lang="en-us"):
+            converse.response = utterances[0] if utterances else None
+            event.set()
+            return True
+
+        converse.response = None
+        default_converse = self.converse
+        self.converse = converse
+        self.speak_dialog(dialog, data, expect_response=True)
+        event.wait(200)
+        self.converse = default_converse
+        return converse.response
 
     def report_metric(self, name, data):
         """
